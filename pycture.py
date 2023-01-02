@@ -1,3 +1,4 @@
+import sys
 from typing import Tuple
 from PIL import Image, ImageColor
 from pathlib import Path
@@ -17,12 +18,42 @@ def crop(path: Path, box: Tuple) -> None:
     img.crop((left, top, right, bottom)).save(tdir / path.name)
 
 
-parent_path = Path(
-    "/home/armin/Repository/Businesses/Web Business/Clients/Silk Flower International/Desktop")
+def overlay(path: Path, rgba: Tuple) -> None:
+    img = Image.open(path)
+    red, green, blue, alpha = rgba
+    width, height = img.size[0], img.size[1]
 
-tdir: Path = parent_path / "resized"
-if not tdir.exists():
-    tdir.mkdir()
+    for x in range(1, width):
+        for y in range(1, height):
+            img.putpixel((x, y), (red, green, blue, alpha))
 
-for images in parent_path.glob("*.*"):
-    crop(images, (20, 20, 100, 100))
+    img.save(tdir / path.name)
+
+
+def remove_bg(path: Path) -> None:
+    img = Image.open(path)
+    width, height = img.size[0], img.size[1]
+
+    for x in range(1, width):
+        for y in range(1, height):
+            img.getpixel((x, y))
+
+    img.save(tdir / path.name)
+
+
+if __name__ == "__main__":
+    path = Path(
+        "/home/armin/Repository/Businesses/Web Business/Clients/Silk Flower International/Desktop/photo_2022-11-27_11-36-02.jpg")
+
+    tdir = Path("resized")
+
+    tdir = path.parent / tdir
+    if not tdir.exists():
+        tdir.mkdir()
+
+    if path.is_dir():
+        for images in path.glob("*.*"):
+            overlay(images, (211, 211, 211, 50))
+
+    else:
+        overlay(path, (211, 211, 211, 50))
