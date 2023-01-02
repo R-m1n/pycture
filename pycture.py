@@ -19,7 +19,7 @@ def crop(path: Path, box: Tuple) -> None:
 
 
 def overlay(path: Path, rgba: Tuple) -> None:
-    img = Image.open(path)
+    img = Image.open(path).convert("RGBA")
     red, green, blue, alpha = rgba
     width, height = img.size[0], img.size[1]
 
@@ -31,19 +31,32 @@ def overlay(path: Path, rgba: Tuple) -> None:
 
 
 def remove_bg(path: Path) -> None:
-    img = Image.open(path)
+    img = Image.open(path).convert("RGBA")
     width, height = img.size[0], img.size[1]
+
+    colors = dict()
+    for x in range(1, width):
+        for y in range(1, height):
+            if img.getpixel((x, y)) not in colors:
+                colors[img.getpixel((x, y))] = 0
+
+            else:
+                colors[img.getpixel((x, y))] += 1
+
+    bg_color = sorted(
+        colors.items(), key=lambda item: item[0], reverse=True)[0][0]
 
     for x in range(1, width):
         for y in range(1, height):
-            img.getpixel((x, y))
+            if img.getpixel((x, y)) == bg_color:
+                img.putpixel((x, y), (0))
 
-    img.save(tdir / path.name)
+    img.save(tdir / path.name.replace(path.suffix, ".png"))
 
 
 if __name__ == "__main__":
     path = Path(
-        "/home/armin/Repository/Businesses/Web Business/Clients/Silk Flower International/Desktop/photo_2022-11-27_11-36-02.jpg")
+        "/home/armin/Repository/Businesses/Web Business/Clients/Silk Flower International/Desktop/photo_2022-11-27_11-32-46.jpg")
 
     tdir = Path("resized")
 
@@ -53,7 +66,7 @@ if __name__ == "__main__":
 
     if path.is_dir():
         for images in path.glob("*.*"):
-            overlay(images, (211, 211, 211, 50))
+            remove_bg(images)
 
     else:
-        overlay(path, (211, 211, 211, 50))
+        remove_bg(path)
