@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import sys
 from typing import Tuple
 from PIL import Image, ImageColor
@@ -29,8 +30,7 @@ def remove_bg(img: Image.Image) -> Image.Image:
     return replace_color(img, bg_color, (0))
 
 
-def replace_color(img: Image.Image, old: Tuple, new: Tuple) -> Image.Image:
-    img = img.convert("RGBA")
+def replace_color(img: Image.Image, old: Tuple, new: Tuple) -> Image.Image:  # needs conversion
     width, height = img.size[0], img.size[1]
 
     for x in range(width):
@@ -41,16 +41,17 @@ def replace_color(img: Image.Image, old: Tuple, new: Tuple) -> Image.Image:
     return img
 
 
-def watermark(img: Image.Image, logo: Image.Image, logo_box: Tuple = (300, 300), logo_position: str = None) -> Image.Image:
-    logo = resize(logo, logo_box)
-    logo_position = getPosition(logo_position, img, logo)
+def watermark(img: Image.Image, logo: Image.Image, position: str = None) -> Image.Image:  # needs conversion
+    position = getCoordinates(position, img, logo)
 
-    img.paste(logo, logo_position, logo)
+    img.paste(logo, position, logo)
     return img
 
 
-def getPosition(position: str, img: Image.Image, logo: Image.Image) -> Tuple:
-    position = position.lower()
+def getCoordinates(position: str, img: Image.Image, logo: Image.Image) -> Tuple:
+    if isinstance(position, str):
+        position = position.lower()
+
     width, height = img.size[0], img.size[1]
     logo_width, logo_height = logo.size[0], logo.size[1]
 
@@ -87,7 +88,7 @@ if __name__ == "__main__":
         "/home/armin/Repository/Businesses/Web Business/Clients/Silk Flower International/Desktop")
 
     logo = Path(
-        "/home/armin/Repository/Businesses/Web Business/Clients/Silk Flower International/Desktop/photo_2022-11-27_11-33-36.jpg")
+        "/home/armin/Repository/Businesses/Web Business/Clients/Silk Flower International/Desktop/photo_2022-11-27_11-36-02.jpg")
 
     tdir = Path("resized")
 
@@ -103,6 +104,21 @@ if __name__ == "__main__":
     else:
         images.append(path)
 
+    parser = ArgumentParser(
+        prog="Pycture",
+        description="Simple Image Manipulation Tools.",
+        epilog="\"Aesthetics is subjective\", is it??")
+
+    parser.add_argument("path", help="path of the to be manipulated image")
+    parser.add_argument("-r", "--resize")
+
+    # function implementation
+    logo = Image.open(logo)
+
+    if logo.format != "png":
+        logo = logo.convert("RGBA")
+
+    logo = remove_bg(resize(logo, (300, 300)))
+
     for image in images:
-        watermark(Image.open(image), Image.open(logo),
-                  (300, 300)).save(tdir / image.name)
+        watermark(Image.open(image), logo).save(tdir / image.name)
