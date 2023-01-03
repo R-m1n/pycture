@@ -24,7 +24,7 @@ def overlay(img: Image.Image, rgba: Iterable) -> Image.Image:
     return img
 
 
-def remove_bg(img: Image.Image) -> Image.Image:
+def remove_bg(img: Image.Image) -> Image.Image:  # needs conversion
     bg_color = img.getpixel((0, 0))
 
     return replace_color(img, bg_color, (0))
@@ -97,7 +97,7 @@ def getArgs():
     parser.add_argument(
         "-o", "--overlay", nargs=4, metavar=("red", "green", "blue", "alpha"), help="adds an overlay %(metavar)s on the image(s)")
     parser.add_argument(
-        "-rb", "--remove-background", action="store_false", help="removes the background of the image(s)")
+        "-rb", "--remove-background", action="store_true", help="removes the background of the image(s)")
     parser.add_argument(
         "-rc", "--replace-color", nargs=8, metavar=("red", "green", "blue", "alpha", "red", "green", "blue", "alpha"), help="replaces given color on the image(s) with a new color")
     parser.add_argument(
@@ -124,21 +124,46 @@ if __name__ == "__main__":
 
     if args.resize:
         for image in images:
-            result = resize(Image.open(image), map(
-                lambda arg: int(arg), args.resize)).save(tdir / image.name)
+            resize(Image.open(image),
+                   map(lambda arg: int(arg), args.resize)).save(tdir / image.name)
 
-    if args.crop:
+    elif args.crop:
         for image in images:
-            result = crop(Image.open(image), map(
-                lambda arg: int(arg), args.resize)).save(tdir / image.name)
+            crop(Image.open(image),
+                 map(lambda arg: int(arg), args.crop)).save(tdir / image.name)
 
-    # function implementation
-    # logo = Image.open(Path(args.logo))
+    elif args.overlay:
+        for image in images:
+            overlay(Image.open(image),
+                    tuple(map(lambda arg: int(arg), args.overlay))).save(tdir / image.name)
 
-    # if logo.format != "png":
-    #     logo = logo.convert("RGBA")
+    elif args.remove_background:
+        for image in images:
+            filename = image.name.replace(Path(image.name).suffix, ".png")
 
-    # logo = remove_bg(resize(logo, (300, 300)))
+            remove_bg(Image.open(image)
+                      .convert("RGBA")).save(tdir / filename)
 
-    # for image in images:
-    #     watermark(Image.open(image), logo).save(tdir / image.name)
+    elif args.replace_color:
+        for image in images:
+            oldColor = tuple(map(lambda arg: int(arg), args.overlay))[:4]
+            newColor = tuple(map(lambda arg: int(arg), args.overlay))[4:]
+
+            replace_color(Image.open(image),
+                          oldColor,
+                          newColor).save(tdir / image.name)
+
+    elif args.watermark:
+        logo = Image.open(Path(args.watermark[0]))
+
+        if logo.format != "png":
+            logo = logo.convert("RGBA")
+
+        # logo = remove_bg(resize(logo, (300, 300)))
+
+        for image in images:
+            filename = image.name.replace(Path(image.name).suffix, ".png")
+
+            watermark(Image.open(image),
+                      logo,
+                      args.watermark[1]).save(tdir / filename)
