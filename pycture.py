@@ -1,7 +1,6 @@
 from argparse import ArgumentParser
-import sys
 from typing import Iterable, Tuple
-from PIL import Image, ImageColor
+from PIL import Image
 from pathlib import Path
 
 
@@ -21,16 +20,17 @@ def overlay(img: Image.Image, rgba: Iterable) -> Image.Image:
     overlay = Image.new("RGBA", img.size, rgba)
 
     img.paste(overlay, mask=overlay)
+
     return img
 
 
-def remove_bg(img: Image.Image) -> Image.Image:  # needs conversion
+def remove_bg(img: Image.Image) -> Image.Image:
     bg_color = img.getpixel((0, 0))
 
     return replace_color(img, bg_color, (0))
 
 
-def replace_color(img: Image.Image, old: Iterable, new: Iterable) -> Image.Image:  # needs conversion
+def replace_color(img: Image.Image, old: Iterable, new: Iterable) -> Image.Image:
     width, height = img.size[0], img.size[1]
 
     for x in range(width):
@@ -41,10 +41,11 @@ def replace_color(img: Image.Image, old: Iterable, new: Iterable) -> Image.Image
     return img
 
 
-def watermark(img: Image.Image, logo: Image.Image, position: str = None) -> Image.Image:  # needs conversion
+def watermark(img: Image.Image, logo: Image.Image, position: str = None) -> Image.Image:
     position = getCoordinates(position, img, logo)
 
     img.paste(logo, position, logo)
+
     return img
 
 
@@ -89,19 +90,26 @@ def getArgs():
         description="Simple Image Manipulation Tools.",
         epilog="\"Aesthetics is subjective\", is it??")
 
-    parser.add_argument("path", help="path of the to be manipulated image")
-    parser.add_argument(
-        "-r", "--resize", nargs=2, metavar=("width", "height"), help="resize the image(s) to the given size %(metavar)s")
-    parser.add_argument(
-        "-c", "--crop", nargs=4, metavar=("left", "top", "right", "bottom"), help="crop a given box on the image(s) %(metavar)s")
-    parser.add_argument(
-        "-o", "--overlay", nargs=4, metavar=("red", "green", "blue", "alpha"), help="adds an overlay %(metavar)s on the image(s)")
-    parser.add_argument(
-        "-rb", "--remove-background", action="store_true", help="removes the background of the image(s)")
-    parser.add_argument(
-        "-rc", "--replace-color", nargs=8, metavar=("red", "green", "blue", "alpha", "red", "green", "blue", "alpha"), help="replaces given color on the image(s) with a new color")
-    parser.add_argument(
-        "-wm", "--watermark", nargs=2, metavar=("logo", "position"), help="watermarks the image(s) with a logo at a given position")
+    parser.add_argument("path",
+                        help="path of the image(s)")
+
+    parser.add_argument("-r", "--resize", nargs=2, metavar=("width", "height"),
+                        help="resize the image(s) to the given size %(metavar)s")
+
+    parser.add_argument("-c", "--crop", nargs=4, metavar=("left", "top", "right", "bottom"),
+                        help="crop a given box on the image(s) %(metavar)s")
+
+    parser.add_argument("-o", "--overlay", nargs=4, metavar=("red", "green", "blue", "alpha"),
+                        help="adds an overlay %(metavar)s on the image(s)")
+
+    parser.add_argument("-rb", "--remove-background", action="store_true",
+                        help="removes the background of the image(s)")
+
+    parser.add_argument("-rc", "--replace-color", nargs=8, metavar=("red", "green", "blue", "alpha", "red", "green", "blue", "alpha"),
+                        help="replaces given color on the image(s) with a new color")
+
+    parser.add_argument("-wm", "--watermark", nargs=2, metavar=("logo", "position"),
+                        help="watermarks the image(s) with a logo at a given position")
 
     return parser.parse_args()
 
@@ -154,7 +162,8 @@ if __name__ == "__main__":
                           newColor).save(tdir / image.name)
 
     elif args.watermark:
-        logo = Image.open(Path(args.watermark[0]))
+        logo, position = args.watermark[0], args.watermark[1]
+        logo = Image.open(Path(logo))
 
         if logo.format != "png":
             logo = logo.convert("RGBA")
@@ -166,4 +175,4 @@ if __name__ == "__main__":
 
             watermark(Image.open(image),
                       logo,
-                      args.watermark[1]).save(tdir / filename)
+                      position).save(tdir / filename)
