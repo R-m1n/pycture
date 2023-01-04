@@ -210,16 +210,20 @@ def _getArgs() -> None:
 
 def _pbar(length: int, desc: str, filename: str) -> None:
     for image_size in trange(length, desc=desc + " " + filename, colour="#84ceeb", unit="kB", ncols=100):
-        sleep(.004)
+        sleep(.002)
 
 
 def _getPaths(path: Path) -> List[Path]:
+    paths = []
+
     if path.is_dir():
         for path in path.glob("*.*"):
             paths.append(path)
 
     else:
         paths.append(path)
+
+    return paths
 
 
 def _switch(args: Namespace, path: Path) -> None:
@@ -282,7 +286,8 @@ if __name__ == "__main__":
 
     paths = _getPaths(path)
 
-    tdir = path / Path("pycture")
+    tdir = path / Path("pycture") if path.is_dir() \
+        else path.parent / Path("pycture")
 
     if not tdir.exists():
         tdir.mkdir()
