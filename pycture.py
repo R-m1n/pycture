@@ -1,7 +1,7 @@
 import os
 from argparse import ArgumentParser, Namespace
 from time import sleep
-from typing import Iterable, List
+from typing import List
 from PIL import Image
 from pathlib import Path
 from tqdm import trange
@@ -209,8 +209,10 @@ def _getArgs() -> None:
 
 
 def _pbar(length: int, desc: str, filename: str) -> None:
-    for image_size in trange(length, desc=desc + " " + filename, colour="#84ceeb", unit="kB", ncols=100):
+    for image_size in trange(length, desc=desc + " " + filename, colour="#8359a3", unit="kB", ncols=120):
         sleep(.002)
+
+    print("\n")
 
 
 def _getPaths(path: Path) -> List[Path]:
@@ -226,7 +228,7 @@ def _getPaths(path: Path) -> List[Path]:
     return paths
 
 
-def _switch(args: Namespace, path: Path) -> None:
+def _switch(args: Namespace, paths: List[Path]) -> None:
     if args.resize:
         for path in paths:
             _pbar(_getSize(path), "Resizing", path.name)
@@ -292,6 +294,6 @@ if __name__ == "__main__":
     if not tdir.exists():
         tdir.mkdir()
 
-    _switch(args, path)
+    _switch(args, paths)
 
     print(f"\nImages saved to: {tdir}")
