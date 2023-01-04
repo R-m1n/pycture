@@ -1,9 +1,9 @@
+import os
 from argparse import ArgumentParser
 from time import sleep
 from typing import Iterable, Tuple
 from PIL import Image
 from pathlib import Path
-
 from tqdm import trange
 
 
@@ -52,6 +52,10 @@ def watermark(img: Image.Image, logo: Image.Image, position: str = None) -> Imag
     return img
 
 
+def getSize(path: str) -> int:
+    return os.stat(path).st_size // 1024
+
+
 def getCoordinates(position: str, img: Image.Image, logo: Image.Image) -> Tuple:
     if isinstance(position, str):
         position = position.lower()
@@ -87,7 +91,7 @@ def getCoordinates(position: str, img: Image.Image, logo: Image.Image) -> Tuple:
         return (width - logo_width, height - logo_height)
 
 
-def getArgs():
+def getArgs() -> None:
     parser = ArgumentParser(
         prog="Pycture",
         description="Simple Image Manipulation Tools.",
@@ -117,9 +121,9 @@ def getArgs():
     return parser.parse_args()
 
 
-def pbar(length, desc, filename):
-    for img in trange(length, desc=desc + " " + filename, colour="#84ceeb"):
-        sleep(.006)
+def pbar(length: int, desc: str, filename: str) -> None:
+    for img in trange(length, desc=desc + " " + filename, colour="#84ceeb", unit="kB"):
+        sleep(.004)
 
 
 if __name__ == "__main__":
@@ -130,49 +134,49 @@ if __name__ == "__main__":
     if not tdir.exists():
         tdir.mkdir()
 
-    images = []
+    paths = []
     if path.is_dir():
-        for image in path.glob("*.*"):
-            images.append(image)
+        for path in path.glob("*.*"):
+            paths.append(path)
 
     else:
-        images.append(path)
+        paths.append(path)
 
     if args.resize:
-        for image in images:
-            pbar(100, "Resizing", image.name)
-            resize(Image.open(image),
-                   map(lambda arg: int(arg), args.resize)).save(tdir / image.name)
+        for path in paths:
+            pbar(getSize(path), "Resizing", path.name)
+            resize(Image.open(path),
+                   map(lambda arg: int(arg), args.resize)).save(tdir / path.name)
 
     elif args.crop:
-        for image in images:
-            pbar(100, "Croping", image.name)
-            crop(Image.open(image),
-                 map(lambda arg: int(arg), args.crop)).save(tdir / image.name)
+        for path in paths:
+            pbar(getSize(path), "Croping", path.name)
+            crop(Image.open(path),
+                 map(lambda arg: int(arg), args.crop)).save(tdir / path.name)
 
     elif args.overlay:
-        for image in images:
-            pbar(100, "Overlaying", image.name)
-            overlay(Image.open(image),
-                    tuple(map(lambda arg: int(arg), args.overlay))).save(tdir / image.name)
+        for path in paths:
+            pbar(getSize(path), "Overlaying", path.name)
+            overlay(Image.open(path),
+                    tuple(map(lambda arg: int(arg), args.overlay))).save(tdir / path.name)
 
     elif args.remove_background:
-        for image in images:
-            filename = image.name.replace(Path(image.name).suffix, ".png")
+        for path in paths:
+            filename = path.name.replace(Path(path.name).suffix, ".png")
 
-            pbar(100, "Removing Background", image.name)
-            remove_bg(Image.open(image)
+            pbar(getSize(path), "Removing Background", path.name)
+            remove_bg(Image.open(path)
                       .convert("RGBA")).save(tdir / filename)
 
     elif args.replace_color:
-        for image in images:
+        for path in paths:
             oldColor = tuple(map(lambda arg: int(arg), args.overlay))[:4]
             newColor = tuple(map(lambda arg: int(arg), args.overlay))[4:]
 
-            pbar(100, "Replacing Color", image.name)
-            replace_color(Image.open(image),
+            pbar(getSize(path), "Replacing Color", path.name)
+            replace_color(Image.open(path),
                           oldColor,
-                          newColor).save(tdir / image.name)
+                          newColor).save(tdir / path.name)
 
     elif args.watermark:
         logo, position = args.watermark[0], args.watermark[1]
@@ -181,12 +185,10 @@ if __name__ == "__main__":
         if logo.format != "png":
             logo = logo.convert("RGBA")
 
-        # logo = remove_bg(resize(logo, (300, 300)))
+        for path in paths:
+            filename = path.name.replace(Path(path.name).suffix, ".png")
 
-        for image in images:
-            filename = image.name.replace(Path(image.name).suffix, ".png")
-
-            pbar(100, "Watermarking", image.name)
-            watermark(Image.open(image),
+            pbar(getSize(path), "Watermarking", path.name)
+            watermark(Image.open(path),
                       logo,
                       position).save(tdir / filename)
