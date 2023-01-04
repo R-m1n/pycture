@@ -1,66 +1,153 @@
 import os
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from time import sleep
-from typing import Iterable, Tuple
+from typing import Iterable, List
 from PIL import Image
 from pathlib import Path
 from tqdm import trange
 
 
-def resize(img: Image.Image, size: Iterable) -> Image.Image:
-    width, height = size
+"""
+    A Simple Image Manipulating Script.
 
-    return img.resize((width, height))
-
-
-def crop(img: Image.Image, box: Iterable) -> Image.Image:
-    left, top, right, bottom = box
-
-    return img.crop((left, top, right, bottom))
+    Pycture is a simple script intended to automate easy, yet time consuming image related chores,
+    namely watermarking, background removal, format conversion, ... .
 
 
-def overlay(img: Image.Image, rgba: Iterable) -> Image.Image:
-    overlay = Image.new("RGBA", img.size, rgba)
+    Functions
+    ---------
+    resize(image, size)
+        Return a resized version of the input image according to the input size = (width, height).
 
-    img.paste(overlay, mask=overlay)
+    crop(image, box)
+        Return a cropped version of the input image with respect to the input box = (left, top, right, bottom).
 
-    return img
+    overlay(image, rbga)
+        Return an overlayed version of the input image according to the input RGBA value.
+
+    remove_bg(image)
+        Return an image with removed background.
+
+    replace_color(image, old, new)
+        Return an image with pixels containing the old RGBA value in the image replaced with pixels containing the new RGBA value.
+
+    watermark(image, logo, position)
+        Return an image with a watermark at the designated position.
+"""
 
 
-def remove_bg(img: Image.Image) -> Image.Image:
-    bg_color = img.getpixel((0, 0))
+def resize(image: Image.Image, size: tuple[int, int]) -> Image.Image:
+    """
+        Return a resized version of the input image according to the input size = (width, height).
 
-    return replace_color(img, bg_color, (0))
+        Parameters
+        ----------
+        image: Image
+
+        size: tuple[int, int]
+    """
+
+    return image.resize(size)
 
 
-def replace_color(img: Image.Image, old: Iterable, new: Iterable) -> Image.Image:
-    width, height = img.size[0], img.size[1]
+def crop(image: Image.Image, box: tuple[int, int, int, int]) -> Image.Image:
+    """
+        Return a cropped version of the input image with respect to the input box = (left, top, right, bottom).
+
+        Parameters
+        ----------
+        image: Image
+
+        box: tuple[int, int, int, int]
+    """
+
+    return image.crop(box)
+
+
+def overlay(image: Image.Image, rgba: tuple[int, int, int, int]) -> Image.Image:
+    """
+        Return an overlayed version of the input image according to the input RGBA value.
+
+        Parameters
+        ----------
+        image: Image
+
+        rgba: tuple[int, int, int, int]
+    """
+
+    overlay = Image.new("RGBA", image.size, rgba)
+
+    image.paste(overlay, mask=overlay)
+
+    return image
+
+
+def remove_bg(image: Image.Image) -> Image.Image:
+    """
+        Return an image with removed background.
+
+        Parameters
+        ----------
+        image: Image
+    """
+
+    bg_color = image.getpixel((0, 0))
+
+    return replace_color(image, bg_color, (0))
+
+
+def replace_color(image: Image.Image, old: tuple[int, int, int, int], new: tuple[int, int, int, int]) -> Image.Image:
+    """
+        Return an image with pixels containing the old RGBA value in the image replaced with pixels containing the new RGBA value.
+
+        Parameters
+        ----------
+        image: Image
+
+        old: tuple[int, int, int, int]
+
+        new: tuple[int, int, int, int]
+    """
+
+    width, height = image.size[0], image.size[1]
 
     for x in range(width):
         for y in range(height):
-            if img.getpixel((x, y)) == old:
-                img.putpixel((x, y), new)
+            if image.getpixel((x, y)) == old:
+                image.putpixel((x, y), new)
 
-    return img
-
-
-def watermark(img: Image.Image, logo: Image.Image, position: str = None) -> Image.Image:
-    position = getCoordinates(position, img, logo)
-
-    img.paste(logo, position, logo)
-
-    return img
+    return image
 
 
-def getSize(path: str) -> int:
+def watermark(image: Image.Image, logo: Image.Image, position: str = None) -> Image.Image:
+    """
+        Return an image with a watermark at the designated position.
+
+        Parameters
+        ----------
+        image: Image
+
+        logo: Image
+
+        position: str
+    """
+
+    position = _getCoordinates(position, image, logo)
+
+    image.paste(logo, position, logo)
+
+    return image
+
+
+def _getSize(path: str) -> int:
     return os.stat(path).st_size // 1024
 
 
-def getCoordinates(position: str, img: Image.Image, logo: Image.Image) -> Tuple:
+def _getCoordinates(position: str, image: Image.Image, logo: Image.Image) -> tuple[int, int]:
     if isinstance(position, str):
         position = position.lower()
 
-    width, height = img.size[0], img.size[1]
+    width, height = image.size[0], image.size[1]
     logo_width, logo_height = logo.size[0], logo.size[1]
 
     if position == "top-left" or position == "tl":
@@ -91,7 +178,7 @@ def getCoordinates(position: str, img: Image.Image, logo: Image.Image) -> Tuple:
         return (width - logo_width, height - logo_height)
 
 
-def getArgs() -> None:
+def _getArgs() -> None:
     parser = ArgumentParser(
         prog="Pycture",
         description="Simple Image Manipulation Tools.",
@@ -121,20 +208,12 @@ def getArgs() -> None:
     return parser.parse_args()
 
 
-def pbar(length: int, desc: str, filename: str) -> None:
-    for img in trange(length, desc=desc + " " + filename, colour="#84ceeb", unit="kB"):
+def _pbar(length: int, desc: str, filename: str) -> None:
+    for image_size in trange(length, desc=desc + " " + filename, colour="#84ceeb", unit="kB", ncols=100):
         sleep(.004)
 
 
-if __name__ == "__main__":
-    args = getArgs()
-    path = Path(args.path)
-
-    tdir = path / Path("pycture")
-    if not tdir.exists():
-        tdir.mkdir()
-
-    paths = []
+def _getPaths(path: Path) -> List[Path]:
     if path.is_dir():
         for path in path.glob("*.*"):
             paths.append(path)
@@ -142,21 +221,23 @@ if __name__ == "__main__":
     else:
         paths.append(path)
 
+
+def _switch(args: Namespace, path: Path) -> None:
     if args.resize:
         for path in paths:
-            pbar(getSize(path), "Resizing", path.name)
+            _pbar(_getSize(path), "Resizing", path.name)
             resize(Image.open(path),
                    map(lambda arg: int(arg), args.resize)).save(tdir / path.name)
 
     elif args.crop:
         for path in paths:
-            pbar(getSize(path), "Croping", path.name)
+            _pbar(_getSize(path), "Croping", path.name)
             crop(Image.open(path),
                  map(lambda arg: int(arg), args.crop)).save(tdir / path.name)
 
     elif args.overlay:
         for path in paths:
-            pbar(getSize(path), "Overlaying", path.name)
+            _pbar(_getSize(path), "Overlaying", path.name)
             overlay(Image.open(path),
                     tuple(map(lambda arg: int(arg), args.overlay))).save(tdir / path.name)
 
@@ -164,7 +245,7 @@ if __name__ == "__main__":
         for path in paths:
             filename = path.name.replace(Path(path.name).suffix, ".png")
 
-            pbar(getSize(path), "Removing Background", path.name)
+            _pbar(_getSize(path), "Removing Background", path.name)
             remove_bg(Image.open(path)
                       .convert("RGBA")).save(tdir / filename)
 
@@ -173,7 +254,7 @@ if __name__ == "__main__":
             oldColor = tuple(map(lambda arg: int(arg), args.overlay))[:4]
             newColor = tuple(map(lambda arg: int(arg), args.overlay))[4:]
 
-            pbar(getSize(path), "Replacing Color", path.name)
+            _pbar(_getSize(path), "Replacing Color", path.name)
             replace_color(Image.open(path),
                           oldColor,
                           newColor).save(tdir / path.name)
@@ -188,7 +269,24 @@ if __name__ == "__main__":
         for path in paths:
             filename = path.name.replace(Path(path.name).suffix, ".png")
 
-            pbar(getSize(path), "Watermarking", path.name)
+            _pbar(_getSize(path), "Watermarking", path.name)
             watermark(Image.open(path),
                       logo,
                       position).save(tdir / filename)
+
+
+if __name__ == "__main__":
+    args = _getArgs()
+
+    path = Path(args.path)
+
+    paths = _getPaths(path)
+
+    tdir = path / Path("pycture")
+
+    if not tdir.exists():
+        tdir.mkdir()
+
+    _switch(args, path)
+
+    print(f"\nImages saved to: {tdir}")
