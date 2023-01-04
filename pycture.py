@@ -1,7 +1,10 @@
 from argparse import ArgumentParser
+from time import sleep
 from typing import Iterable, Tuple
 from PIL import Image
 from pathlib import Path
+
+from tqdm import trange
 
 
 def resize(img: Image.Image, size: Iterable) -> Image.Image:
@@ -114,6 +117,11 @@ def getArgs():
     return parser.parse_args()
 
 
+def pbar(length, desc, filename):
+    for img in trange(length, desc=desc + " " + filename, colour="#84ceeb"):
+        sleep(.006)
+
+
 if __name__ == "__main__":
     args = getArgs()
     path = Path(args.path)
@@ -132,16 +140,19 @@ if __name__ == "__main__":
 
     if args.resize:
         for image in images:
+            pbar(100, "Resizing", image.name)
             resize(Image.open(image),
                    map(lambda arg: int(arg), args.resize)).save(tdir / image.name)
 
     elif args.crop:
         for image in images:
+            pbar(100, "Croping", image.name)
             crop(Image.open(image),
                  map(lambda arg: int(arg), args.crop)).save(tdir / image.name)
 
     elif args.overlay:
         for image in images:
+            pbar(100, "Overlaying", image.name)
             overlay(Image.open(image),
                     tuple(map(lambda arg: int(arg), args.overlay))).save(tdir / image.name)
 
@@ -149,6 +160,7 @@ if __name__ == "__main__":
         for image in images:
             filename = image.name.replace(Path(image.name).suffix, ".png")
 
+            pbar(100, "Removing Background", image.name)
             remove_bg(Image.open(image)
                       .convert("RGBA")).save(tdir / filename)
 
@@ -157,6 +169,7 @@ if __name__ == "__main__":
             oldColor = tuple(map(lambda arg: int(arg), args.overlay))[:4]
             newColor = tuple(map(lambda arg: int(arg), args.overlay))[4:]
 
+            pbar(100, "Replacing Color", image.name)
             replace_color(Image.open(image),
                           oldColor,
                           newColor).save(tdir / image.name)
@@ -173,6 +186,7 @@ if __name__ == "__main__":
         for image in images:
             filename = image.name.replace(Path(image.name).suffix, ".png")
 
+            pbar(100, "Watermarking", image.name)
             watermark(Image.open(image),
                       logo,
                       position).save(tdir / filename)
